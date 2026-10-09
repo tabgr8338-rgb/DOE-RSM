@@ -1,0 +1,71 @@
+name: build-windows
+# Windows用インストーラー（Python同梱・管理者権限不要）を作る。
+# PRとmainへのpushではビルドとテストだけ、v で始まるタグを push すると GitHub の Releases に置く。
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  installer:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 同梱するPython（embeddable）を用意
+        run: |
+          $ver = python -c "import platform; print(platform.python_version())"
+          $tag = python -c "import sys; print(f'python{sys.version_info.major}{sys.version_info.minor}')"
+          $app = "build\DOE-RSM"
+          New-Item -ItemType Directory -Force "$app\python" | Out-Null
+          Invoke-WebRequest "https://www.python.org/ftp/python/$ver/python-$ver-embed-amd64.zip" -OutFile embed.zip
+          Expand-Archive embed.zip -DestinationPath "$app\python"
+          # site-packages を読み込むようにする
+          Set-Content "$app\python\$tag._pth" "$tag.zip`r`n.`r`nLib\site-packages`r`nimport site"
+          "APP=$app" | Out-File -Append $env:GITHUB_ENV
+      - name: アプリと部品を入れる
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --target "$env:APP\python\Lib\site-packages" ".[app]"
+          python desktop\make_icon.py "$env:APP\DOE-RSM.ico"
+          Copy-Item desktop\DOE-RSM.pyw "$env:APP\"
+          # 初回起動を速くするため、同梱のPythonで事前にコンパイルしておく
+          & "$env:APP\python\python.exe" -m compileall -q "$env:APP\python\Lib\site-packages"
+          $v = & "$env:APP\python\python.exe" -c "import doe_rsm; print(doe_rsm.__version__)"
+          "VERSION=$v" | Out-File -Append $env:GITHUB_ENV
+      - name: 同梱のPythonだけで動くか確認
+        run: |
+          & "$env:APP\python\python.exe" "$env:APP\DOE-RSM.pyw" --smoke
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: インストーラーを作る
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$env:VERSION" "/DSourceDir=$((Resolve-Path $env:APP).Path)" "/DOutputDir=$((Get-Location).Path)\dist" desktop\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: インストールして起動を確認
+        run: |
+          $setup = (Get-ChildItem dist\DOE-RSM-Setup-*.exe).FullName
+          Start-Process $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER" -Wait
+          $dir = "$env:LOCALAPPDATA\Programs\DOE-RSM"
+          & "$dir\python\python.exe" "$dir\DOE-RSM.pyw" --smoke
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES" -Wait
+          if (Test-Path "$dir\DOE-RSM.pyw") { Write-Error "アンインストール後にファイルが残っている"; exit 1 }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DOE-RSM-Setup-${{ env.VERSION }}
+          path: dist\DOE-RSM-Setup-*.exe
+      - name: Releases に置く（タグのとき）
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" (Get-ChildItem dist\DOE-RSM-Setup-*.exe).FullName --title "DOE-RSM $env:VERSION" --notes "Windows用インストーラー。ダウンロードしてダブルクリックで入れられます（管理者権限は不要）。"

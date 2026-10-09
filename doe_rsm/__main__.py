@@ -38,7 +38,7 @@ def run_app(port: int = 8501) -> int:
         print('エラー：画面アプリには追加の部品が必要です。pip install -e ".[app]" を実行してください。', file=sys.stderr)
         return 1
     entry = Path(__file__).with_name("app_main.py")
-    return subprocess.call([sys.executable, "-m", "streamlit", "run", str(entry), "--server.port", str(port),
+    return subprocess.call([sys.executable, "-m", "streamlit", "run", str(entry), "--server.address", "127.0.0.1", "--server.port", str(port),
                             "--server.showEmailPrompt", "false", "--browser.gatherUsageStats", "false", "--client.toolbarMode", "minimal"])
 
 
