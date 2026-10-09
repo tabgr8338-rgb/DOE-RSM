@@ -58,7 +58,9 @@ def load_file(name: str, data: bytes) -> Project:
     with tempfile.TemporaryDirectory() as d:
         path = Path(d) / name
         path.write_bytes(data)
-        sheets = load_workbook(path, read_only=True).sheetnames
+        wb = load_workbook(path, read_only=True)
+        sheets = wb.sheetnames
+        wb.close()  # 読み取り専用モードはファイルを開いたままにするので、Windows で一時フォルダを消せるよう閉じる
         if "01_因子設定" in sheets:
             project = import_excel_v1(str(path))
             project.log("取り込み", f"RSMツール v1.1「{name}」から計画とYを取り込み")
