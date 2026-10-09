@@ -1,5 +1,5 @@
 """Excelのプロジェクトファイル：新規作成 → 計画 → Y入力 → 解析 の一連と、v1.1 からの取り込み。"""
-import os
+import json
 from pathlib import Path
 
 import numpy as np
@@ -126,17 +126,20 @@ def test_screening_workflow_writes_effects_and_path(tmp_path):
 
 @pytest.mark.parametrize("k", [2, 3, 4])
 def test_import_excel_v1_1(tmp_path, k):
-    # 元のブックはリポジトリに含めていない。DOE_RSM_V1_DIR に置き場所を指定したときだけ実行する
-    src = os.environ.get("DOE_RSM_V1_DIR")
-    hits = sorted(Path(src).glob(f"*RSM_{k}*v1.1.xlsx")) if src else []
-    if not hits:
-        pytest.skip("RSMツール v1.1 のブックがない環境")
-    project = import_excel_v1(str(hits[0]))
+    """RSMツール v1.1 の元ブックを取り込み、Excelと同じ推奨条件になることを確かめる。"""
+    src = FIXTURES / "v1_1" / f"RSM_{k}factor_v1.1.xlsx"
+    project = import_excel_v1(str(src))
     dest = tmp_path / "imp.xlsx"
     save_project(str(dest), project)
     again = read_project(str(dest))
     np.testing.assert_array_equal(again.design.run_order, project.design.run_order)
     np.testing.assert_allclose(again.y, project.y)
+    expected = json.loads((FIXTURES / f"excel_v1_1_k{k}.json").read_text(encoding="utf-8"))
+    res = analyze(again)
+    for got, exp in ((res.optimization.robust, expected["expected"]["optimization"]["robust"]),
+                     (res.optimization.point, expected["expected"]["optimization"]["point"])):
+        np.testing.assert_allclose(got.x, exp["x"], atol=1e-12)
+        assert got.pred == pytest.approx(exp["pred"], rel=1e-9)
     assert main(["analyze", str(dest)]) == 0
 
 
