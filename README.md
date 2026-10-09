@@ -16,7 +16,7 @@ Python も GitHub のアカウントもいりません。管理者権限も不�
 - 新しい版は、新しいインストーラーを上から入れれば更新されます。設定やプロジェクトファイルは消えません。
 - やめるときは Windows の「設定」→「アプリ」から DOE-RSM をアンインストールします。
 
-インストーラーは GitHub Actions（`.github/workflows/build-windows.yml`）が作ります。`v0.4.0` のようなタグを push すると Releases に置かれます。
+インストーラーは GitHub Actions（`.github/workflows/build-windows.yml`）が作ります。バージョン番号を上げて main にマージすると、そのバージョンのインストーラーが Releases に自動で置かれます。
 
 ## 画面アプリの始め方（Windows・Pythonから）
 
