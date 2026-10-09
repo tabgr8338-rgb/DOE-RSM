@@ -147,7 +147,11 @@ def write_template(path: str, n_factors: int = 3, title: str = "", project: Opti
         wh.cell(1, c, h)
     _style_header(wh, 1, 4)
     _widths(wh, [20, 14, 80, 12])
-    _append_history(wb, "作成", "プロジェクトファイルを作成")
+    if p is not None and p.history:
+        for row in p.history:
+            wh.append(list(row))
+    else:
+        _append_history(wb, "作成", "プロジェクトファイルを作成")
     wb.save(path)
 
 
@@ -199,6 +203,10 @@ def read_project(path: str) -> Project:
         _read_design(wb[S_DESIGN], project)
     if "Model" in wb.sheetnames and not project.is_screening:
         project.used_terms = _read_used_terms(wb["Model"], len(factors))
+    if S_HISTORY in wb.sheetnames:
+        wh = wb[S_HISTORY]
+        project.history = [[wh.cell(r, c).value for c in range(1, 5)] for r in range(2, wh.max_row + 1)
+                           if wh.cell(r, 1).value is not None]
     return project
 
 
@@ -560,8 +568,18 @@ def import_excel_v1(path: str) -> Project:
 
 def save_project(path: str, project: Project) -> None:
     """Project（取り込んだものなど）を新しいプロジェクトファイルに書き出す。計画とYも含める。"""
+    project.log("取り込み", "既存の計画とYを書き出し")
+    export_project(path, project)
+
+
+def export_project(path: str, project: Project, result=None) -> None:
+    """Project の現在の状態（設定・計画・Y・履歴、あれば解析結果）をプロジェクトファイルに書き出す。"""
     write_template(path, project=project)
-    wb = load_workbook(path)
-    _write_design_sheet(wb, project, f"実験指示書（{DESIGN_LABELS[project.design_type]}・{project.design.n_runs}回）")
-    _append_history(wb, "取り込み", "既存の計画とYを書き出し")
-    wb.save(path)
+    if project.design is not None:
+        wb = load_workbook(path)
+        _write_design_sheet(wb, project, f"実験指示書（{DESIGN_LABELS[project.design_type]}・{project.design.n_runs}回"
+                                         + (f"・乱数シード {project.design.seed}" if project.design.seed is not None else "")
+                                         + "）：この順に実験し、Yを入力")
+        wb.save(path)
+    if result is not None:
+        write_results(path, project, result)

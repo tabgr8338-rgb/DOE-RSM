@@ -4,9 +4,12 @@
     python -m doe_rsm design 乾燥条件.xlsx               # 実験指示書（Designシート）を作る → 実験してYを入力
     python -m doe_rsm analyze 乾燥条件.xlsx              # 解析して結果シートを書き込む
     python -m doe_rsm import RSM_3因子_v1.1.xlsx 取込.xlsx  # 既存のRSMツール（v1.1）から取り込む
+    python -m doe_rsm app                               # 画面で操作する（ブラウザが開く）
 """
 import argparse
+import subprocess
 import sys
+from pathlib import Path
 
 from .excel_io import import_excel_v1, read_project, save_project, write_design, write_results, write_template
 from .project import RSMResult, analyze
@@ -28,6 +31,17 @@ def _print_result(res) -> None:
             print(f"  曲率：{res.fit.curvature.message}")
 
 
+def run_app(port: int = 8501) -> int:
+    try:
+        import streamlit  # noqa: F401
+    except ImportError:
+        print('エラー：画面アプリには追加の部品が必要です。pip install -e ".[app]" を実行してください。', file=sys.stderr)
+        return 1
+    entry = Path(__file__).with_name("app_main.py")
+    return subprocess.call([sys.executable, "-m", "streamlit", "run", str(entry), "--server.port", str(port),
+                            "--server.showEmailPrompt", "false", "--browser.gatherUsageStats", "false", "--client.toolbarMode", "minimal"])
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m doe_rsm", description="DOE-RSM プロジェクトファイルの操作")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -43,7 +57,11 @@ def main(argv=None) -> int:
     p = sub.add_parser("import", help="RSMツール（Excel）v1.1 から取り込む")
     p.add_argument("source")
     p.add_argument("dest")
+    p = sub.add_parser("app", help="画面で操作する（ブラウザで開く）")
+    p.add_argument("--port", type=int, default=8501)
     a = ap.parse_args(argv)
+    if a.cmd == "app":
+        return run_app(a.port)
     try:
         if a.cmd == "new":
             write_template(a.path, a.factors, a.title)

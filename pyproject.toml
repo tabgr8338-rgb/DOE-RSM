@@ -4,16 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "doe-rsm"
-version = "0.1.0"
+version = "0.3.0"
 description = "実験計画から応答曲面法による最適条件・工程窓の推定までを支援する分析エンジン"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24", "scipy>=1.10", "openpyxl>=3.1"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+app = ["streamlit>=1.50", "plotly>=5.20", "pandas>=2.0"]
 
 [tool.setuptools]
 packages = ["doe_rsm"]
+
+[tool.setuptools.package-data]
+doe_rsm = ["samples/*.xlsx"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

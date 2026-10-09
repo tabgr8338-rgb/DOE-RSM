@@ -3,4 +3,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.xlsx
-!tests/fixtures/*.xlsx
+!tests/fixtures/v1_1/*.xlsx
+!doe_rsm/samples/*.xlsx
