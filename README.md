@@ -3,10 +3,13 @@
 事前実験（スクリーニング）から応答曲面法（RSM）による解析、最適条件・工程窓の推定、確認実験までを支援するソフトです。
 いまは画面のない分析エンジン（Pythonパッケージ `doe_rsm`）の段階で、計算仕様は社内の **RSMツール（Excel）v1.1** に合わせています。
 
-## できること（v0.1：Excel v1.1 と同じ範囲）
+## できること
 
 | 段階 | 関数 | 内容 |
 |---|---|---|
+| スクリーニング | `build_plackett_burman` / `build_full_factorial` / `fit_first_order` | PB計画（8〜24回）・2水準要因計画＋中心点、1次モデルの効果とp値（自由度がなければ Lenth 法） |
+| 曲率判定 | `curvature_test` | 要因点と中心点の平均の差で曲率を検定。あればRSMへ、なければ最急上昇法へ |
+| 最急上昇法 | `steepest_path` / `recenter` | 1次係数の比で進む経路（最小化なら最急降下）、安全限界の超過表示、次の実験範囲の取り直し |
 | 計画 | `build_design` / `randomize` | 面心CCD・回転可能CCD・Box-Behnken、中心点、安全限界チェック、乱数シード付きの実験順序（変更困難因子のグループ化も可） |
 | 回帰 | `fit_quadratic` | コード化単位の2次回帰、項の除外（モデル縮小）、階層性チェック、ANOVA、適合度の欠如、R²・調整R²・PRESS・予測R²、スチューデント化残差 |
 | 判断ゲート | `judgment_gates` | 安全性・ランダマイズ・データ・回帰の有意性・適合度の欠如・過学習・残差・階層性を ○／△／× で判定 |
@@ -46,6 +49,8 @@ print(best.robust.x_real, best.robust.margin)
 
 ## 検証
 
+スクリーニング・曲率判定・最急上昇法は、Montgomery『Design and Analysis of Experiments』の例題（例6.2 ろ過速度、例11.1 化学プロセス）の数値で確かめています。
+
 `tests/fixtures/` に、Excel v1.1 の2・3・4因子版に同梱された架空データ（乾燥炉）と、その計算結果を書き出してあります。
 `tests/test_excel_parity.py` で、係数・標準誤差・p値・ANOVA・PRESS・残差・停留点・固有値・ロバスト最適・1因子窓・組合せチェック・確認実験の予測区間が Excel と一致することを確かめています。
 
@@ -58,6 +63,6 @@ Excel側を更新したときは、`python tools/extract_excel_fixture.py <xlsx>
 
 ## 今後の予定
 
-- v0.2：Plackett–Burman／2水準要因のスクリーニング、中心点による曲率判定、最急上昇法、Excelでの入出力
+- v0.2：Excelでの入出力（プロジェクトファイル）
 - v0.3：Streamlitの操作画面
 - その先：望ましさ関数による多応答最適化、モンテカルロ、分割区画の正式解析

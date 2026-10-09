@@ -8,6 +8,8 @@ from .design import BOX_BEHNKEN, FACE_CCD, ROTATABLE_CCD, build_design, randomiz
 from .factors import Factor, Response
 from .model import fit_quadratic, judgment_gates, term_names
 from .optimize import optimize
+from .screening import (build_full_factorial, build_plackett_burman, curvature_test, fit_first_order, recenter,
+                        steepest_path)
 from .window import combination_check, one_factor_windows, slice_map, window_ranges
 
-__version__ = "0.1.0"
+__version__ = "0.2.0.dev0"
