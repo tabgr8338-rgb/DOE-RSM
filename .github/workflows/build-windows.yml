@@ -22,6 +22,7 @@ jobs:
           python-version: "3.12"
       - name: 同梱するPython（embeddable）を用意
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true  # 外部コマンドが失敗したらステップを失敗にする
           $ver = python -c "import platform; print(platform.python_version())"
           $tag = python -c "import sys; print(f'python{sys.version_info.major}{sys.version_info.minor}')"
           $app = "build\DOE-RSM"
@@ -33,9 +34,11 @@ jobs:
           "APP=$app" | Out-File -Append $env:GITHUB_ENV
       - name: アプリと部品を入れる
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true  # 外部コマンドが失敗したらステップを失敗にする
           python -m pip install --upgrade pip
           python -m pip install --target "$env:APP\python\Lib\site-packages" ".[app]"
-          python desktop\make_icon.py "$env:APP\DOE-RSM.ico"
+          # Pillow は同梱側にだけ入っているので、同梱のPythonでアイコンを作る
+          & "$env:APP\python\python.exe" desktop\make_icon.py "$env:APP\DOE-RSM.ico"
           Copy-Item desktop\DOE-RSM.pyw "$env:APP\"
           # 初回起動を速くするため、同梱のPythonで事前にコンパイルしておく
           & "$env:APP\python\python.exe" -m compileall -q "$env:APP\python\Lib\site-packages"
@@ -43,15 +46,19 @@ jobs:
           "VERSION=$v" | Out-File -Append $env:GITHUB_ENV
       - name: 同梱のPythonだけで動くか確認
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true  # 外部コマンドが失敗したらステップを失敗にする
           & "$env:APP\python\python.exe" "$env:APP\DOE-RSM.pyw" --smoke
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: インストーラーを作る
         run: |
-          choco install innosetup -y --no-progress
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DAppVersion=$env:VERSION" "/DSourceDir=$((Resolve-Path $env:APP).Path)" "/DOutputDir=$((Get-Location).Path)\dist" desktop\installer.iss
+          $PSNativeCommandUseErrorActionPreference = $true  # 外部コマンドが失敗したらステップを失敗にする
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          & $iscc /Q "/DAppVersion=$env:VERSION" "/DSourceDir=$((Resolve-Path $env:APP).Path)" "/DOutputDir=$((Get-Location).Path)\dist" desktop\installer.iss
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: インストールして起動を確認
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true  # 外部コマンドが失敗したらステップを失敗にする
           $setup = (Get-ChildItem dist\DOE-RSM-Setup-*.exe).FullName
           Start-Process $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER" -Wait
           $dir = "$env:LOCALAPPDATA\Programs\DOE-RSM"
@@ -68,4 +75,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true  # 外部コマンドが失敗したらステップを失敗にする
           gh release create "$env:GITHUB_REF_NAME" (Get-ChildItem dist\DOE-RSM-Setup-*.exe).FullName --title "DOE-RSM $env:VERSION" --notes "Windows用インストーラー。ダウンロードしてダブルクリックで入れられます（管理者権限は不要）。"
