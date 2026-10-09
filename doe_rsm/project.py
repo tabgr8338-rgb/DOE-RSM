@@ -1,9 +1,11 @@
 """プロジェクト（1つの実験テーマ）の設定と、計画から解析までを通しで実行する処理。"""
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import List, Optional
 
 import numpy as np
 
+from . import __version__
 from .canonical import CanonicalResult, canonical_analysis
 from .design import (BOX_BEHNKEN, FACE_CCD, ROTATABLE_CCD, Design, build_design, hard_to_change_index,
                      randomize)
@@ -57,6 +59,10 @@ class Project:
         self.design = randomize(d, self.seed, self.randomization == "grouped")
         self.y = np.full(d.n_runs, np.nan)
         return self.design
+
+    def log(self, action: str, detail: str) -> None:
+        """History シートに残す操作の記録。"""
+        self.history.append([datetime.now().strftime("%Y-%m-%d %H:%M"), action, detail, __version__])
 
     @property
     def n_missing(self) -> int:

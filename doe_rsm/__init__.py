@@ -2,7 +2,7 @@
 
 計算仕様は RSMツール（Excel）v1.1 に合わせ、同梱の架空データで結果が一致することをテストで確認している。
 """
-__version__ = "0.2.0.dev0"
+__version__ = "0.3.0"
 
 from .canonical import canonical_analysis
 from .confirm import judge_confirmation, prediction_interval
