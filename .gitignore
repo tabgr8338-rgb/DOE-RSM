@@ -5,3 +5,4 @@ __pycache__/
 *.xlsx
 !tests/fixtures/v1_1/*.xlsx
 !doe_rsm/samples/*.xlsx
+.installed
