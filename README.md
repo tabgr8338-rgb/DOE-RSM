@@ -25,7 +25,24 @@
 - 最適化・工程窓は実験領域内だけを探します（外挿しない。Box-Behnkenは半径√2の球内）。
 - 分割区画（変更困難因子）の正式な解析には対応していません。順序のグループ化だけを行い、判断ゲートで △ を出します。
 
-## 使い方
+## 使い方（Excelのプロジェクトファイル）
+
+1つの実験テーマを1つのExcelファイルで管理します。計算はPythonが行い、Excelには値だけを書きます。黄色・青字のセルが入力欄です。
+
+```bash
+pip install -e .
+python -m doe_rsm new 乾燥条件.xlsx --factors 3   # Project・Factors シートに設定を入力
+python -m doe_rsm design 乾燥条件.xlsx            # Design シート（実験指示書）ができる。この順に実験し、Yを入力
+python -m doe_rsm analyze 乾燥条件.xlsx           # Model・ANOVA・Gates・Canonical・Optimization・OperatingWindow・Residuals を書き込む
+```
+
+- 計画の種類が Plackett-Burman／2水準要因なら、analyze は Effects（効果・曲率）と SteepestPath（最急上昇の経路）を書きます。
+- Model シートの『使用』を0にして analyze し直すと、その項を除外したモデルで再計算します。
+- Y が入った Design シートは、`--force` を付けない限り作り直しません。同じ乱数シードなら同じ実験順序になります。
+- History シートに、作成・計画・解析の日時とソフトのバージョンを残します。
+- 既存の RSMツール（Excel）v1.1 のブックは `python -m doe_rsm import RSM_3因子_v1.1.xlsx 取込.xlsx` で取り込めます。
+
+## 使い方（Python から）
 
 ```python
 import numpy as np
@@ -63,6 +80,5 @@ Excel側を更新したときは、`python tools/extract_excel_fixture.py <xlsx>
 
 ## 今後の予定
 
-- v0.2：Excelでの入出力（プロジェクトファイル）
 - v0.3：Streamlitの操作画面
 - その先：望ましさ関数による多応答最適化、モンテカルロ、分割区画の正式解析
