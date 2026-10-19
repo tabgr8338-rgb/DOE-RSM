@@ -120,6 +120,9 @@ def main(argv=None) -> int:
 
     d = data_dir()
     log = d / "server.log"
+    if log.exists():
+        # 前回の記録を1つ残す（固まったあとに開き直しても原因を調べられるように）
+        log.replace(d / "server-prev.log")
     proc = start_server(port, log)
     try:
         if not wait_ready(port, proc):
